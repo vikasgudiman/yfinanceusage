@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Search Results</title>
+</head>
+<body>
+    <h2>Results for "{{ company_name }}"</h2>
+
+    {% if results %}
+    <form action="/history" method="post">
+        <label>Select a company:</label>
+        <select name="symbol">
+            {% for r in results %}
+                <option value="{{ r.symbol }}">{{ r.longname }} ({{ r.symbol }})</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Get History</button>
+    </form>
+    {% else %}
+        <p>No results found.</p>
+    {% endif %}
+
+    <br><a href="/">Search again</a>
+</body>
+</html>

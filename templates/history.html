@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock History</title>
+</head>
+<body>
+    <h2>1 Month Historical Data for {{ symbol }}</h2>
+    <table border="1">
+    <tr>
+        <th>Date</th>
+        <th>Open</th>
+        <th>High</th>
+        <th>Low</th>
+        <th>Close</th>
+        <th>Volume</th>
+        <th>MACD</th>
+        <th>Signal</th>
+        <th>MACD_Indicator</th>
+        <th>MA7</th>
+        <th>MA13</th>
+        <th>MA_Indicator</th>
+        <th>RSI</th>
+        <th>RSI_Indicator</th>
+        <th>ADX</th>
+        <th>ADX_Indicator</th>
+        <th>Beta</th>
+    </tr>
+    {% for row in data %}
+    <tr>
+        <td>{{ row['Date'] }}</td>
+        <td>{{ row['Open'] }}</td>
+        <td>{{ row['High'] }}</td>
+        <td>{{ row['Low'] }}</td>
+        <td>{{ row['Close'] }}</td>
+        <td>{{ row['Volume'] }}</td>
+        <td>{{ row['MACD'] }}</td>
+        <td>{{ row['Signal']}} </td>
+        <td>{{ row['MACD_Indicator']}}</td>
+        <td>{{ row['MA7']}}</td>
+        <td>{{ row['MA13']}}</td>
+        <td>{{ row['MA_Indicator']}}</td>
+        <td>{{ row['RSI'] }}</td>
+        <td>{{ row['RSI_Indicator'] }}</td>
+        <td>{{ row['ADX'] }}</td>
+        <td>{{ row['ADX_Indicator'] }}</td>
+        <td>{{ beta }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+
+    <br><a href="/">Search again</a>
+</body>
+</html>
