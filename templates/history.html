@@ -1,54 +1,191 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Stock History</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock History - {{ symbol }}</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f6f8;
+        padding: 20px;
+        margin: 0;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        text-align: center;
+    }
+
+    h2 {
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+    .error {
+        color: red;
+        margin-bottom: 20px;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
+        justify-items: center;
+    }
+
+    .block {
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 13px;
+        transition: transform 0.2s, box-shadow 0.2s;
+        width: 100%;
+        text-align: center;
+        color: white;
+    }
+
+    .block:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .label {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .value {
+        font-weight: bold;
+    }
+
+    a {
+        display: inline-block;
+        margin-top: 25px;
+        color: #007bff;
+        text-decoration: none;
+        font-weight: bold;
+    }
+
+    a:hover {
+        text-decoration: underline;
+    }
+
+    /* Indicator Colors */
+    .strong-buy { background-color: #006400; } /* Dark Green */
+    .buy { background-color: #28a745; }       /* Green */
+    .hold { background-color: #6c757d; }      /* Gray */
+    .sell { background-color: #dc3545; }      /* Red */
+    .strong-sell { background-color: #8b0000; } /* Dark Red */
+    .default { background-color: #007bff; }   /* Blue for normal values */
+</style>
 </head>
 <body>
-    <h2>1 Month Historical Data for {{ symbol }}</h2>
-    <table border="1">
-    <tr>
-        <th>Date</th>
-        <th>Open</th>
-        <th>High</th>
-        <th>Low</th>
-        <th>Close</th>
-        <th>Volume</th>
-        <th>MACD</th>
-        <th>Signal</th>
-        <th>MACD_Indicator</th>
-        <th>MA7</th>
-        <th>MA13</th>
-        <th>MA_Indicator</th>
-        <th>RSI</th>
-        <th>RSI_Indicator</th>
-        <th>ADX</th>
-        <th>ADX_Indicator</th>
-        <th>Beta</th>
-    </tr>
-    {% for row in data %}
-    <tr>
-        <td>{{ row['Date'] }}</td>
-        <td>{{ row['Open'] }}</td>
-        <td>{{ row['High'] }}</td>
-        <td>{{ row['Low'] }}</td>
-        <td>{{ row['Close'] }}</td>
-        <td>{{ row['Volume'] }}</td>
-        <td>{{ row['MACD'] }}</td>
-        <td>{{ row['Signal']}} </td>
-        <td>{{ row['MACD_Indicator']}}</td>
-        <td>{{ row['MA7']}}</td>
-        <td>{{ row['MA13']}}</td>
-        <td>{{ row['MA_Indicator']}}</td>
-        <td>{{ row['RSI'] }}</td>
-        <td>{{ row['RSI_Indicator'] }}</td>
-        <td>{{ row['ADX'] }}</td>
-        <td>{{ row['ADX_Indicator'] }}</td>
-        <td>{{ beta }}</td>
-    </tr>
-    {% endfor %}
-</table>
+<div class="container">
+    <h2>Latest Data for {{ symbol }}</h2>
 
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% elif data %}
+        <div class="grid">
+            {% for row in data %}
+                <!-- Date block -->
+                <div class="block default">
+                    <span class="label">Date</span>
+                    <span class="value">{{ row['Date'] }}</span>
+                </div>
 
-    <br><a href="/">Search again</a>
+                <!-- Price blocks -->
+                <div class="block default"><span class="label">Open</span><span class="value">{{ row['Open'] }}</span></div>
+                <div class="block default"><span class="label">High</span><span class="value">{{ row['High'] }}</span></div>
+                <div class="block default"><span class="label">Low</span><span class="value">{{ row['Low'] }}</span></div>
+                <div class="block default"><span class="label">Close</span><span class="value">{{ row['Close'] }}</span></div>
+
+                <!-- Volume block -->
+                <div class="block default"><span class="label">Volume</span><span class="value">{{ row['Volume'] }}</span></div>
+
+                <!-- MACD -->
+                <div class="block 
+                    {% if row['MACD_Indicator'] == 'Strong Buy' %}strong-buy{% elif row['MACD_Indicator'] == 'Buy' %}buy
+                    {% elif row['MACD_Indicator'] == 'Sell' %}sell{% elif row['MACD_Indicator'] == 'Strong Sell' %}strong-sell
+                    {% else %}hold{% endif %}">
+                    <span class="label">MACD/Signal</span>
+                    <span class="value">{{ row['MACD'] }}/{{ row['Signal']}} ({{ row['MACD_Indicator'] }})</span>
+                </div>
+
+                <!-- MA -->
+                <div class="block 
+                    {% if row['MA_Indicator'] == 'Strong Buy' %}strong-buy{% elif row['MA_Indicator'] == 'Buy' %}buy
+                    {% elif row['MA_Indicator'] == 'Sell' %}sell{% elif row['MA_Indicator'] == 'Strong Sell' %}strong-sell
+                    {% else %}hold{% endif %}">
+                    <span class="label">MA7/13</span>
+                    <span class="value">{{ row['MA7'] }}/{{ row['MA13'] }} ({{ row['MA_Indicator'] }})</span>
+                </div>
+
+                <!-- RSI -->
+                <div class="block 
+                    {% if row['RSI_Indicator'] == 'Strong Buy' %}strong-buy{% elif row['RSI_Indicator'] == 'Buy' %}buy
+                    {% elif row['RSI_Indicator'] == 'Sell' %}sell{% elif row['RSI_Indicator'] == 'Strong Sell' %}strong-sell
+                    {% else %}hold{% endif %}">
+                    <span class="label">RSI</span>
+                    <span class="value">{{ row['RSI'] }} ({{ row['RSI_Indicator'] }})</span>
+                </div>
+
+                <!-- ADX -->
+                <div class="block 
+                    {% if row['ADX_Indicator'] == 'Strong Buy' %}strong-buy{% elif row['ADX_Indicator'] == 'Buy' %}buy
+                    {% elif row['ADX_Indicator'] == 'Sell' %}sell{% elif row['ADX_Indicator'] == 'Strong Sell' %}strong-sell
+                    {% else %}hold{% endif %}">
+                    <span class="label">ADX</span>
+                    <span class="value">{{ row['ADX'] }} ({{ row['ADX_Indicator'] }})</span>
+                </div>
+
+                <!-- Beta -->
+                <div class="block default">
+                    <span class="label">Beta</span>
+                    <span class="value">{{ result["beta"] }}</span>
+                </div>
+
+                <div class="block default">
+                    <span class="label">PE</span>
+                    <span class="value">{{ result["PE"] }}</span>
+                </div>
+                <div class="block default">
+                    <span class="label">EPS</span>
+                    <span class="value">{{ result["EPS"] }}</span>
+                </div>
+                <div class="block default">
+                    <span class="label">LTP</span>
+                    <span class="value">{{ result["LTP"] }}</span>
+                </div>
+                <div class="block default">
+                    <span class="label">Market Cap</span>
+                    <span class="value">{{ result["MarketCap"] }} cr</span>
+                </div>
+                <div class="block default">
+                    <span class="label">Roce</span>
+                    <span class="value">{{ result["roce"] }}</span>
+                </div>
+                <div class="block default">
+                    <span class="label">Book Value</span>
+                    <span class="value">{{ result["bookValue"] }}</span>
+                </div>
+                <div class="block default">
+                    <span class="label">D/E</span>
+                    <span class="value">{{ result["debtToEquity"] }}</span>
+                </div>
+                <div class="block default">
+                    <span class="label">P/BV</span>
+                    <span class="value">{{ result["priceToBook"] }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No data available.</p>
+    {% endif %}
+
+    <a href="/">&#8592; Search again</a>
+</div>
 </body>
 </html>

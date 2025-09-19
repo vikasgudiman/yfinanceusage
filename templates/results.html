@@ -1,25 +1,96 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 50px;
+            margin: 0;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 30px 40px;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        h2 {
+            margin-bottom: 25px;
+            color: #333;
+        }
+
+        select {
+            width: 80%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px 25px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        p {
+            color: #555;
+            font-size: 16px;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
-    <h2>Results for "{{ company_name }}"</h2>
+    <div class="container">
+        <h2>Results for "{{ company_name }}"</h2>
 
-    {% if results %}
-    <form action="/history" method="post">
-        <label>Select a company:</label>
-        <select name="symbol">
-            {% for r in results %}
-                <option value="{{ r.symbol }}">{{ r.longname }} ({{ r.symbol }})</option>
-            {% endfor %}
-        </select>
-        <button type="submit">Get History</button>
-    </form>
-    {% else %}
-        <p>No results found.</p>
-    {% endif %}
+        {% if results %}
+        <form action="/history" method="post">
+            <label for="symbol">Select a company:</label>
+            <br><br>
+            <select name="symbol" id="symbol">
+                {% for r in results %}
+                    <option value="{{ r.symbol }}">{{ r.longname }} ({{ r.symbol }})</option>
+                {% endfor %}
+            </select>
+            <br>
+            <button type="submit">Get History</button>
+        </form>
+        {% else %}
+            <p>No results found.</p>
+        {% endif %}
 
-    <br><a href="/">Search again</a>
+        <a href="/">&#8592; Search again</a>
+    </div>
 </body>
 </html>
