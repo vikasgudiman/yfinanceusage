@@ -83,25 +83,36 @@ async def get_history(symbol: str = Form(...)):
     signal = last_row["Signal"]
     technical.append(build_macd_signal_key(macd, signal))
 
-    print(last_row)
-
     beta = calculate_beta_1yr(symbol)
     info = get_info_from_yfinance(symbol)
     roce = get_roce(symbol)
 
-    fundemental = {
-        "beta": round(beta, 2) if beta else None,
-        "PE": round(info.get("trailingPE", 0), 2) if info.get("trailingPE") else None,
-        "EPS": round(info.get("trailingEps", 0), 2) if info.get("trailingEps") else None,
-        "LTP": round(info.get("currentPrice", 0), 2) if info.get("currentPrice") else None,
-        "MarketCap": f"{int(int(info.get('marketCap', 0)) / 10000000):,}",
-        "bookValue": round(info.get("bookValue", 0), 2) if info.get("bookValue") else None,
-        "debtToEquity": round(info.get("debtToEquity", 0), 2) if info.get("debtToEquity") else None,
-        "priceToBook": round(info.get("priceToBook", 0), 2) if info.get("priceToBook") else None,
-        "roce": round(roce, 2) if roce else None,
-    }
+    fundamental = {
+    # Existing keys
+    "beta": round(beta, 2) if beta else None,
+    "PE": round(info.get("trailingPE", 0), 2) if info.get("trailingPE") else None,
+    "EPS": round(info.get("trailingEps", 0), 2) if info.get("trailingEps") else None,
+    "LTP": round(info.get("currentPrice", 0), 2) if info.get("currentPrice") else None,
+    "bookValue": round(info.get("bookValue", 0), 2) if info.get("bookValue") else None,
+    "debtToEquity": round(info.get("debtToEquity", 0), 2) if info.get("debtToEquity") else None,
+    "priceToBook": round(info.get("priceToBook", 0), 2) if info.get("priceToBook") else None,
+    "roce": round(roce, 2) if roce else None,
 
-    return {"symbol": symbol, "data": technical, "result": fundemental}
+    # Converted to crore
+    "MarketCap (in cr)": round(info.get("marketCap", 0) / 1e7, 2) if info.get("marketCap") else None,
+    "Revenue (in cr)": round(info.get("totalRevenue", 0) / 1e7, 2) if info.get("totalRevenue") else None,
+    "GrossProfit (in cr)": round(info.get("grossProfits", 0) / 1e7, 2) if info.get("grossProfits") else None,
+    "NetProfit (in cr)": round(info.get("netIncomeToCommon", 0) / 1e7, 2) if info.get("netIncomeToCommon") else None,
+    "Equity (in cr)": round((info.get("bookValue", 0) * info.get("sharesOutstanding", 0)) / 1e7, 2) if info.get("bookValue") and info.get("sharesOutstanding") else None,
+
+    # Other added keys
+    "RevenueGrowth%": round(info.get("revenueGrowth", 0) * 100, 2) if info.get("revenueGrowth") else None,
+    "EarningsGrowth%": round(info.get("earningsGrowth", 0) * 100, 2) if info.get("earningsGrowth") else None,
+    "EPSForward": round(info.get("epsForward", 0), 2) if info.get("epsForward") else None,
+    "EPS%Increase": round(((info.get("epsForward", 0) - info.get("trailingEps", 0)) / info.get("trailingEps", 1)) * 100, 2) if info.get("trailingEps") else None,
+    "ROE%": round((info.get("netIncomeToCommon", 0) / (info.get("bookValue", 0) * info.get("sharesOutstanding", 1))) * 100, 2) if info.get("bookValue") and info.get("sharesOutstanding") else None,
+    }
+    return {"symbol": symbol, "data": technical, "result": fundamental}
 
 
 if __name__ == "__main__":
