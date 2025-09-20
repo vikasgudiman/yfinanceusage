@@ -3,16 +3,19 @@ import yfinance as yf
 import pandas as pd
 import uvicorn
 import json
+import os
 from datetime import datetime
 
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from finance.beta import calculate_beta_1yr
 from finance.from_yfinance import get_info_from_yfinance, lookup_symbol
 from finance.roce import get_roce
 from finance.indicators import calculate_indicators
 from finance.utils import *
+from finance.excel_reader import read_data
 
 app = FastAPI()
 
@@ -25,6 +28,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class FileRequest(BaseModel):
+    file_path: str
 
 @app.post("/search")
 async def search_company(company_name: str = Form(...)):
@@ -68,7 +73,6 @@ async def get_history(symbol: str = Form(...)):
     if close is not None and ma7 is not None and ma13 is not None:
         color, label = get_ma_color(ma13, ma7)
         technical.append({"key": "Price/MA7/MA13", "value": [f"{close}/{ma7}/{ma13}", color, label]})
-    technical.append({"key": "MA13/MA7", "value": [f"{close}/{ma7}/{ma13}", color, label]})
 
     # --- MA100/MA200 ---
     ma100 = last_row.get("MA100")
@@ -114,6 +118,20 @@ async def get_history(symbol: str = Form(...)):
     }
     return {"symbol": symbol, "data": technical, "result": fundamental}
 
+@app.post("/get-stocks/")
+def get_stocks(request: FileRequest):
+    file_path = request.file_path
 
+    try:
+        # Optional: check if file exists
+        if not os.path.exists(file_path):
+            return {"error": f"File not found: {file_path}"}
+
+        stock_names = read_data(file_path)
+
+        return {"stock_names": stock_names}
+    except Exception as e:
+        return {"error": str(e)}
+    
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
