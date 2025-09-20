@@ -9,6 +9,7 @@ import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import CircularProgress from "@mui/material/CircularProgress";
 
 const App = () => {
   const [filePath, setFilePath] = useState("");
@@ -16,6 +17,7 @@ const App = () => {
   const [stockSymbols, setStockSymbols] = useState({}); // Map: stockName -> symbol
   const [loadingStocks, setLoadingStocks] = useState(false);
   const [loadingSymbol, setLoadingSymbol] = useState({}); // Map: stockName -> loading boolean
+  const [loadingAll, setLoadingAll] = useState(false); // Global loading for "Load All"
   const [errorMsg, setErrorMsg] = useState("");
 
   // Fetch stock names from file
@@ -44,8 +46,7 @@ const App = () => {
   // Fetch symbol for a specific stock
   const handleStockClick = async (stockName) => {
     try {
-      // If already fetched, do nothing
-      if (stockSymbols[stockName]) return;
+      if (stockSymbols[stockName]) return; // Already fetched
 
       setErrorMsg("");
       setLoadingSymbol((prev) => ({ ...prev, [stockName]: true }));
@@ -67,6 +68,44 @@ const App = () => {
     } finally {
       setLoadingSymbol((prev) => ({ ...prev, [stockName]: false }));
     }
+  };
+
+  // Fetch all stock symbols in parallel
+  const handleLoadAllStocks = async () => {
+    if (stockNames.length === 0) return;
+
+    setErrorMsg("");
+    setLoadingAll(true);
+
+    // Mark all as loading
+    const newLoading = {};
+    stockNames.forEach((name) => (newLoading[name] = true));
+    setLoadingSymbol(newLoading);
+
+    const fetchPromises = stockNames.map(async (stock) => {
+      if (stockSymbols[stock]) return; // Already fetched
+
+      try {
+        const formData = new FormData();
+        formData.append("company_name", stock);
+
+        const res = await axios.post("http://localhost:8000/search", formData);
+
+        if (res.data.results && res.data.results.length > 0) {
+          const symbol = res.data.results[0].symbol || res.data.results[0];
+          setStockSymbols((prev) => ({ ...prev, [stock]: symbol }));
+        } else {
+          console.warn(`No ticker found for ${stock}`);
+        }
+      } catch (err) {
+        console.error(`Error fetching symbol for ${stock}`, err);
+      } finally {
+        setLoadingSymbol((prev) => ({ ...prev, [stock]: false }));
+      }
+    });
+
+    await Promise.all(fetchPromises);
+    setLoadingAll(false);
   };
 
   return (
@@ -92,6 +131,23 @@ const App = () => {
         >
           Load Stocks
         </Button>
+
+        {/* Load all stocks button */}
+        {stockNames.length > 0 && (
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={handleLoadAllStocks}
+            disabled={loadingAll}
+            startIcon={
+              loadingAll ? (
+                <CircularProgress size={18} color="inherit" />
+              ) : null
+            }
+          >
+            {loadingAll ? "Loading All..." : "Load All Stocks"}
+          </Button>
+        )}
       </Box>
 
       {loadingStocks && <p className="text-blue-600">Loading stocks...</p>}
