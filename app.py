@@ -128,7 +128,7 @@ def get_stocks(request: FileRequest):
             return {"error": f"File not found: {file_path}"}
 
         stock_names = read_data(file_path)
-
+        
         return {"stock_names": stock_names}
     except Exception as e:
         return {"error": str(e)}

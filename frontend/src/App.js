@@ -4,27 +4,83 @@ import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import Box from "@mui/material/Box";
 import axios from "axios";
+import Grid from "@mui/material/Grid";
 import Stocks from "./Stocks";
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import CircularProgress from "@mui/material/CircularProgress";
+import { styled } from "@mui/material/styles";
+import Paper from "@mui/material/Paper";
+
+const Item = styled(Paper)(({ theme }) => ({
+  backgroundColor: "#fff",
+  ...theme.typography.body2,
+  padding: theme.spacing(1),
+  textAlign: "center",
+  color: (theme.vars ?? theme).palette.text.secondary,
+  ...theme.applyStyles("dark", {
+    backgroundColor: "#1A2027",
+  }),
+}));
+
+const colorMap = {
+  lightred: "#fca5a5",
+  darkred: "#b91c1c",
+  lightgreen: "#86efac",
+  darkgreen: "#166534",
+  gray: "#d1d5db",
+};
 
 const App = () => {
   const [filePath, setFilePath] = useState("");
   const [stockNames, setStockNames] = useState([]);
-  const [stockSymbols, setStockSymbols] = useState({}); // Map: stockName -> symbol
+  const [stockSymbols, setStockSymbols] = useState({});
+  const [stockData, setStockData] = useState({});
   const [loadingStocks, setLoadingStocks] = useState(false);
-  const [loadingSymbol, setLoadingSymbol] = useState({}); // Map: stockName -> loading boolean
-  const [loadingAll, setLoadingAll] = useState(false); // Global loading for "Load All"
+  const [loadingSymbol, setLoadingSymbol] = useState({});
   const [errorMsg, setErrorMsg] = useState("");
+  const [searchText, setSearchText] = useState("");
 
-  // Fetch stock names from file
-  const handleFetchStocks = async () => {
+  const fetchStockInfo = async (stockName) => {
+    try {
+      const formData = new FormData();
+      formData.append("company_name", stockName);
+      const res = await axios.post("http://localhost:8000/search", formData);
+
+      if (res.data.results && res.data.results.length > 0) {
+        const symbol = res.data.results[0].symbol || res.data.results[0];
+        setStockSymbols((prev) => ({ ...prev, [stockName]: symbol }));
+
+        const formData2 = new FormData();
+        formData2.append("symbol", symbol);
+        const res2 = await axios.post("http://localhost:8000/history", formData2);
+
+        if (!res2.data.error) {
+          setStockData((prev) => ({
+            ...prev,
+            [stockName]: {
+              data: res2.data.data || [],
+              result: res2.data.result || {},
+            },
+          }));
+        }
+      } else {
+        setErrorMsg(`No ticker found for ${stockName}`);
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(`Error fetching info for ${stockName}`);
+    }
+  };
+
+  const handleLoadStocks = async () => {
+    if (!filePath) return;
     try {
       setErrorMsg("");
       setLoadingStocks(true);
+
       const res = await axios.post("http://localhost:8000/get-stocks/", {
         file_path: filePath,
       });
@@ -32,81 +88,34 @@ const App = () => {
       if (res.data.error) {
         setErrorMsg(res.data.error);
         setStockNames([]);
-      } else {
-        setStockNames(res.data.stock_names || []);
+        return;
       }
+
+      const stocks = res.data.stock_names || [];
+      setStockNames(stocks);
+
+      const newLoading = {};
+      stocks.forEach((name) => (newLoading[name] = true));
+      setLoadingSymbol(newLoading);
+
+      await Promise.all(
+        stocks.map(async (stock) => {
+          await fetchStockInfo(stock);
+          setLoadingSymbol((prev) => ({ ...prev, [stock]: false }));
+        })
+      );
     } catch (err) {
-      setErrorMsg("Error fetching stocks from file path");
       console.error(err);
+      setErrorMsg("Error loading stocks");
     } finally {
       setLoadingStocks(false);
     }
   };
 
-  // Fetch symbol for a specific stock
-  const handleStockClick = async (stockName) => {
-    try {
-      if (stockSymbols[stockName]) return; // Already fetched
-
-      setErrorMsg("");
-      setLoadingSymbol((prev) => ({ ...prev, [stockName]: true }));
-
-      const formData = new FormData();
-      formData.append("company_name", stockName);
-
-      const res = await axios.post("http://localhost:8000/search", formData);
-
-      if (res.data.results && res.data.results.length > 0) {
-        const symbol = res.data.results[0].symbol || res.data.results[0];
-        setStockSymbols((prev) => ({ ...prev, [stockName]: symbol }));
-      } else {
-        setErrorMsg(`No ticker found for ${stockName}`);
-      }
-    } catch (err) {
-      console.error(err);
-      setErrorMsg("Error searching ticker");
-    } finally {
-      setLoadingSymbol((prev) => ({ ...prev, [stockName]: false }));
-    }
-  };
-
-  // Fetch all stock symbols in parallel
-  const handleLoadAllStocks = async () => {
-    if (stockNames.length === 0) return;
-
-    setErrorMsg("");
-    setLoadingAll(true);
-
-    // Mark all as loading
-    const newLoading = {};
-    stockNames.forEach((name) => (newLoading[name] = true));
-    setLoadingSymbol(newLoading);
-
-    const fetchPromises = stockNames.map(async (stock) => {
-      if (stockSymbols[stock]) return; // Already fetched
-
-      try {
-        const formData = new FormData();
-        formData.append("company_name", stock);
-
-        const res = await axios.post("http://localhost:8000/search", formData);
-
-        if (res.data.results && res.data.results.length > 0) {
-          const symbol = res.data.results[0].symbol || res.data.results[0];
-          setStockSymbols((prev) => ({ ...prev, [stock]: symbol }));
-        } else {
-          console.warn(`No ticker found for ${stock}`);
-        }
-      } catch (err) {
-        console.error(`Error fetching symbol for ${stock}`, err);
-      } finally {
-        setLoadingSymbol((prev) => ({ ...prev, [stock]: false }));
-      }
-    });
-
-    await Promise.all(fetchPromises);
-    setLoadingAll(false);
-  };
+  // Filtered stocks based on search text
+  const filteredStocks = stockNames.filter((name) =>
+    name.toLowerCase().includes(searchText.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-indigo-100 via-blue-50 to-green-100 flex flex-col items-center p-8">
@@ -114,56 +123,93 @@ const App = () => {
         📂 Stock Holdings Viewer
       </Typography>
 
-      {/* File path input */}
-      <Box className="flex gap-4 mb-6">
+      {/* File path input + load button */}
+      <Box className="flex gap-4 mb-6 w-full max-w-md">
         <TextField
           label="Enter File Path"
           variant="outlined"
           value={filePath}
           onChange={(e) => setFilePath(e.target.value)}
           className="bg-white rounded-md"
-          style={{ minWidth: "400px" }}
+          fullWidth
         />
         <Button
           variant="contained"
           color="primary"
-          onClick={handleFetchStocks}
+          onClick={handleLoadStocks}
+          disabled={loadingStocks}
+          startIcon={loadingStocks && <CircularProgress size={18} color="inherit" />}
         >
-          Load Stocks
+          {loadingStocks ? "Loading..." : "Load Stocks"}
         </Button>
-
-        {/* Load all stocks button */}
-        {stockNames.length > 0 && (
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={handleLoadAllStocks}
-            disabled={loadingAll}
-            startIcon={
-              loadingAll ? (
-                <CircularProgress size={18} color="inherit" />
-              ) : null
-            }
-          >
-            {loadingAll ? "Loading All..." : "Load All Stocks"}
-          </Button>
-        )}
       </Box>
 
-      {loadingStocks && <p className="text-blue-600">Loading stocks...</p>}
+      {/* Search bar */}
+      {stockNames.length > 0 && (
+        <Box className="mb-6 w-full max-w-md">
+          <TextField
+            label="Search Stocks"
+            variant="outlined"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            fullWidth
+          />
+        </Box>
+      )}
+
       {errorMsg && <p className="text-red-600">{errorMsg}</p>}
 
       {/* Stock accordions */}
       <Box className="flex flex-col gap-3 mb-6 w-full max-w-3xl">
-        {stockNames.map((stock) => (
+        {filteredStocks.map((stock) => (
           <Accordion key={stock}>
             <AccordionSummary
               expandIcon={<ArrowDropDownIcon />}
               aria-controls={`${stock}-content`}
               id={`${stock}-header`}
-              onClick={() => handleStockClick(stock)}
             >
-              <Typography component="span">{stock}</Typography>
+              <Box className="flex items-center gap-3 flex-wrap">
+                <Typography component="span" className="font-semibold">
+                  {stock}
+                </Typography>
+
+                {stockData[stock]?.data
+                  ?.filter((item) =>
+                    [
+                      "RSI",
+                      "ADX",
+                      "Price/MA7/MA13",
+                      "Price/MA100/MA200",
+                      "MACD/Signal",
+                    ].includes(item.key)
+                  )
+                  .map((item) => {
+                    const bgColor = colorMap[item.value[1]] || "#d1d5db";
+                    const label = item.value[2] || "";
+                    return (
+                      <Box
+                        key={item.key}
+                        sx={{
+                          px: 1.5,
+                          py: 0.5,
+                          borderRadius: 2,
+                          fontSize: "0.75rem",
+                          fontWeight: 500,
+                          backgroundColor: bgColor,
+                          color: ["lightred", "darkred"].includes(item.value[1])
+                            ? "white"
+                            : "black",
+                        }}
+                      >
+                        {item.key}:{" "}
+                        {Array.isArray(item.value[0])
+                          ? item.value[0].join("/")
+                          : item.value[0]}{" "}
+                        {label && `(${label})`}
+                      </Box>
+                    );
+                  })}
+              </Box>
             </AccordionSummary>
 
             <AccordionDetails>
@@ -174,12 +220,10 @@ const App = () => {
                   <Typography variant="h5" className="mb-4 text-gray-700">
                     📈 {stockSymbols[stock]} Stock Info
                   </Typography>
-                  <Stocks symbol={stockSymbols[stock]} />
+                  <Stocks symbol={stockSymbols[stock]} preloadedData={stockData[stock]} />
                 </div>
               ) : (
-                <Typography className="text-gray-500">
-                  Click to load ticker
-                </Typography>
+                <Typography className="text-gray-500">No ticker found</Typography>
               )}
             </AccordionDetails>
           </Accordion>

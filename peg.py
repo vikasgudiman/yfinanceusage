@@ -1,8 +1,9 @@
 
 import yfinance as yf
 
-ticker = yf.Ticker("RELIANCE.NS")
+ticker = yf.Ticker("ADANIENT.NS")
 info = ticker.info
 
 for key in info:
-    print(f"{key}: {info[key]}")
+    if "gross" in key.lower():
+        print(f"{key}: {info[key]}")

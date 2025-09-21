@@ -15,13 +15,13 @@ const colorMap = {
   gray: "#d1d5db",
 };
 
-const Stocks = ({ symbol }) => {
-  const [tableData, setTableData] = useState(null);
+const Stocks = ({ symbol, preloadedData }) => {
+  const [tableData, setTableData] = useState(preloadedData || null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!symbol) return;
+    if (!symbol || preloadedData) return;
 
     const fetchData = async () => {
       try {
@@ -51,11 +51,16 @@ const Stocks = ({ symbol }) => {
     };
 
     fetchData();
-  }, [symbol]);
+  }, [symbol, preloadedData]);
 
   const getValueColor = (key, value) => {
-    if (typeof value === "string" && (value === "Buy" || value === "Sell" || value === "Strong Buy")) {
-      return value.includes("Buy") ? "text-green-700 font-bold" : "text-red-700 font-bold";
+    if (
+      typeof value === "string" &&
+      (value === "Buy" || value === "Sell" || value === "Strong Buy")
+    ) {
+      return value.includes("Buy")
+        ? "text-green-700 font-bold"
+        : "text-red-700 font-bold";
     }
     return "text-gray-800";
   };
@@ -68,9 +73,14 @@ const Stocks = ({ symbol }) => {
       {tableData && (
         <>
           {/* Technical Indicators */}
-          <Card sx={{ borderRadius: 3, boxShadow: "0 8px 20px rgba(0,0,0,0.12)" }}>
+          <Card
+            sx={{ borderRadius: 3, boxShadow: "0 8px 20px rgba(0,0,0,0.12)" }}
+          >
             <CardContent>
-              <Typography variant="h6" className="font-bold text-gray-800 mb-4">
+              <Typography
+                variant="h6"
+                className="font-bold text-gray-800 mb-4"
+              >
                 📊 Technical Indicators
               </Typography>
               <Grid container spacing={2}>
@@ -84,7 +94,9 @@ const Stocks = ({ symbol }) => {
                           p: 3,
                           borderRadius: 3,
                           backgroundColor: bgColor,
-                          color: ["lightred", "darkred"].includes(item.value[1]) ? "white" : "black",
+                          color: ["lightred", "darkred"].includes(item.value[1])
+                            ? "white"
+                            : "black",
                           transition: "all 0.3s ease",
                           "&:hover": {
                             boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
@@ -117,9 +129,14 @@ const Stocks = ({ symbol }) => {
           </Card>
 
           {/* Fundamentals */}
-          <Card sx={{ borderRadius: 3, boxShadow: "0 8px 20px rgba(0,0,0,0.12)" }}>
+          <Card
+            sx={{ borderRadius: 3, boxShadow: "0 8px 20px rgba(0,0,0,0.12)" }}
+          >
             <CardContent>
-              <Typography variant="h6" className="font-bold text-gray-800 mb-4">
+              <Typography
+                variant="h6"
+                className="font-bold text-gray-800 mb-4"
+              >
                 🏦 Fundamentals
               </Typography>
               <Grid container spacing={2}>
